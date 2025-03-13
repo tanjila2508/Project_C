@@ -48,3 +48,70 @@ jobs:
       - name: Deploy to Server
         run: |
           echo "Deploying to server..."
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to the main branch
+  pull_request:
+    branches:
+      - main  # Trigger on pull requests targeting the main branch
+
+jobs:
+  # Test job
+  test:
+    runs-on: ubuntu-latest  # Use a GitHub-hosted runner
+
+    steps:
+      # Step 1: Checkout code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'  # Specify the Node.js version to use
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Run tests and save results in a JSON file
+      - name: Run tests
+        run: npm test --json > test-results.json
+
+      # Step 5: Upload test results as an artifact
+      - name: Upload test results as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results
+          path: test-results.json
+
+  # Deploy job
+  deploy:
+    needs: test  # Ensure the deploy job runs only if the test job is successful
+    runs-on: self-hosted  # Use a self-hosted runner
+
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Download the test results artifact
+      - name: Download test results artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: test-results
+
+      # Step 3: Display the test results
+      - name: Display test results
+        run: cat test-results.json
+
+      # Step 4: Deploy to self-hosted server
+      - name: Deploy to self-hosted runner
+        run: |
+          echo "Deploying Node.js app"
+          # Replace with your actual deployment command (e.g., SCP, SSH)
+          # Example: scp -r ./dist user@your-server:/path/to/deploy
